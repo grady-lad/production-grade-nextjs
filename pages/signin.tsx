@@ -1,10 +1,24 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { signIn, useSession } from 'next-auth/client'
+import { useRouter } from 'next/router'
 import { Pane, majorScale, Text } from 'evergreen-ui'
 import Logo from '../components/logo'
 
 import SocialButton from '../components/socialButton'
 
 const Signin = () => {
+  const [session] = useSession()
+  const router = useRouter()
+
+  // if a user is logged it, never show them this page,
+  // go straight to app
+  // TODO MOG Look up NEXTJS AUTH patterns accross entire application.
+  useEffect(() => {
+    if (session) {
+      router.push('/app')
+    }
+  }, [session, router])
+
   return (
     <Pane height="100vh" width="100vw" display="flex">
       <Pane
@@ -37,7 +51,7 @@ const Signin = () => {
         paddingX={majorScale(7)}
       >
         <Pane width="100%" textAlign="center">
-          <SocialButton type="github" onClick={() => {}} />
+          <SocialButton type="github" onClick={() => signIn('github')} />
         </Pane>
       </Pane>
     </Pane>
