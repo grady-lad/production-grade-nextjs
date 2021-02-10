@@ -115,7 +115,7 @@ export function getStaticPaths() {
  * visted rarely and the conversion of every person is very important than maybe this isn't the best approach? I suppose it all depends on your app uses cases.
  *
  */
-export async function getStaticProps({ params }) {
+export async function getStaticProps({ params, preview }) {
   let post
 
   try {
@@ -123,7 +123,11 @@ export async function getStaticProps({ params }) {
     const filePath = path.join(process.cwd(), 'posts', `${params.slug}.mdx`)
     post = fs.readFileSync(filePath, 'utf-8')
   } catch {
-    const cmsPosts = posts.published.map((p) => matter(p))
+    /**
+     * If the fallback prop within getStaticPaths is set to false then we can never use the preview prop. Important
+     * to remember when generating previews.
+     */
+    const cmsPosts = (preview ? posts.draft : posts.published).map((p) => matter(p))
 
     const match = cmsPosts.find(({ data: { slug } }) => slug === params.slug)
     post = match.content

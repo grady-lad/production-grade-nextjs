@@ -39,7 +39,7 @@ const Home: FC<{ content: { hero: any; features: any[] } }> = ({ content }) => {
  * Event though we are reading the content from a file in theory this
  * could be an async function where we could read the content from a CMS.
  */
-export function getStaticProps() {
-  return { props: { content: home.published } }
+export function getStaticProps(ctx) {
+  return { props: { content: ctx.preview ? home.draft : home.published } }
 }
 export default Home

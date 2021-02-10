@@ -46,8 +46,8 @@ Blog.defaultProps = {
  * that this content will be cached until the next build.
  *
  */
-export function getStaticProps() {
-  const cmsPosts = postsFromCMS.published.map((item) => {
+export function getStaticProps(ctx) {
+  const cmsPosts = (ctx.prview ? postsFromCMS.draft : postsFromCMS.published).map((item) => {
     const { data } = matter(item)
 
     return data
