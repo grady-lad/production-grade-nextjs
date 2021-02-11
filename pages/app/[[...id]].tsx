@@ -1,6 +1,7 @@
 import React, { FC, useState } from 'react'
-import { Pane, Dialog, majorScale } from 'evergreen-ui'
+import { Pane, Dialog, majorScale, InboxGeoIcon } from 'evergreen-ui'
 import { useRouter } from 'next/router'
+import { getSession, useSession } from 'next-auth/client'
 import Logo from '../../components/logo'
 import FolderList from '../../components/folderList'
 import NewFolderButton from '../../components/newFolderButton'
@@ -15,6 +16,7 @@ const App: FC<{ folders?: any[]; activeFolder?: any; activeDoc?: any; activeDocs
   activeFolder,
   activeDocs,
 }) => {
+  const [session, loading] = useSession()
   const router = useRouter()
   const [newFolderIsShown, setIsShown] = useState(false)
 
@@ -30,7 +32,11 @@ const App: FC<{ folders?: any[]; activeFolder?: any; activeDoc?: any; activeDocs
     return null
   }
 
-  if (false) {
+  if (loading) {
+    return null
+  }
+
+  if (!loading && !session) {
     return (
       <Dialog
         isShown
@@ -60,7 +66,7 @@ const App: FC<{ folders?: any[]; activeFolder?: any; activeDoc?: any; activeDocs
         </Pane>
       </Pane>
       <Pane marginLeft={300} width="calc(100vw - 300px)" height="100vh" overflowY="auto" position="relative">
-        <User user={{}} />
+        <User user={session.user} />
         <Page />
       </Pane>
       <NewFolderDialog close={() => setIsShown(false)} isShown={newFolderIsShown} onNewFolder={() => {}} />
@@ -69,18 +75,26 @@ const App: FC<{ folders?: any[]; activeFolder?: any; activeDoc?: any; activeDocs
 }
 
 App.defaultProps = {
-  folders: [],
+  folders: [{ _id: 1, name: 'hello' }],
 }
 
 /**
- * Catch all handler. Must handle all different page
- * states.
- * 1. Folders - none selected
- * 2. Folders => Folder selected
- * 3. Folders => Folder selected => Document selected
+ * getServerSideProps is blocking.
+ * This function is executed everytime the route is accessed unless we use next/link to navigate between pages.
+ * So when you use next/link the route is client-side routed. The page is pre-fetched if the page we are linking to is static. ( * Question: Is there a way to bypass the pre-fetching)
+ * But if we are using getServerSideProps regardless of the linking mechanisim (next/link or anchor tag) getServerSideProps will always be executed.
  *
- * An unauth user should not be able to access this page.
  *
- * @param context
+ * @param ctx
  */
+export async function getServerSideProps(ctx) {
+  const session = await getSession()
+
+  return {
+    props: {
+      session,
+    },
+  }
+}
+
 export default App
