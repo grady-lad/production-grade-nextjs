@@ -22,6 +22,27 @@ const App: FC<{ folders?: any[]; activeFolder?: any; activeDoc?: any; activeDocs
   const router = useRouter()
   const [newFolderIsShown, setIsShown] = useState(false)
 
+  // local state the inits with server side state then updated
+  // client side after mutations
+  const [allFolders, setFolders] = useState(folders || [])
+
+  const handleNewFolder = async (name: string) => {
+    /**
+     * If you want to access .env vars on the client they need to prefixed with "NEXT_...." like Create-react-app
+     */
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_HOST}/api/folder/`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const { data } = await res.json()
+    // update local state. Queue up the updating of the state correctly by using a function.
+    setFolders((state) => [...state, data])
+  }
+
   const Page = () => {
     if (activeDoc) {
       return <DocPane folder={activeFolder} doc={activeDoc} />
@@ -64,14 +85,14 @@ const App: FC<{ folders?: any[]; activeFolder?: any; activeDoc?: any; activeDocs
           <NewFolderButton onClick={() => setIsShown(true)} />
         </Pane>
         <Pane>
-          <FolderList folders={folders} />{' '}
+          <FolderList folders={allFolders} />{' '}
         </Pane>
       </Pane>
       <Pane marginLeft={300} width="calc(100vw - 300px)" height="100vh" overflowY="auto" position="relative">
         <User user={session.user} />
         <Page />
       </Pane>
-      <NewFolderDialog close={() => setIsShown(false)} isShown={newFolderIsShown} onNewFolder={() => {}} />
+      <NewFolderDialog close={() => setIsShown(false)} isShown={newFolderIsShown} onNewFolder={handleNewFolder} />
     </Pane>
   )
 }
