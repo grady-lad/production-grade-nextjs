@@ -2,6 +2,8 @@ import React, { FC, useState } from 'react'
 import { Pane, Dialog, majorScale, InboxGeoIcon } from 'evergreen-ui'
 import { useRouter } from 'next/router'
 import { getSession, useSession } from 'next-auth/client'
+// When we render on the browser this code will not be here
+import { connectToDB, folder, doc } from '../../db'
 import Logo from '../../components/logo'
 import FolderList from '../../components/folderList'
 import NewFolderButton from '../../components/newFolderButton'
@@ -75,7 +77,7 @@ const App: FC<{ folders?: any[]; activeFolder?: any; activeDoc?: any; activeDocs
 }
 
 App.defaultProps = {
-  folders: [{ _id: 1, name: 'hello' }],
+  folders: [],
 }
 
 /**
@@ -88,13 +90,52 @@ App.defaultProps = {
  * @param ctx
  */
 export async function getServerSideProps(ctx) {
-  const session = await getSession()
+  const session = await getSession(ctx)
 
-  return {
-    props: {
-      session,
-    },
+  // not signed in
+  if (!session || !session.user) {
+    return {
+      props: {},
+    }
   }
+
+  /**
+   * The reason we are acessing the db directly is because we are already on the server.
+   * Why would we send another request to the network to get data when we can acesses directly from the server.
+   */
+  const { db } = await connectToDB()
+  const props: any = { session }
+  const folders = await folder.getFolders(db, session.user.id)
+  props.folders = folders
+
+  // Route is /app/:id or app/:id/:docId
+  if (ctx.params.id) {
+    const activeFolder = folders.find((f) => f._id === ctx.params.id[0])
+    const activeDocs = await doc.getDocsByFolder(db, activeFolder._id)
+
+    props.activeFolder = activeFolder
+    props.activeDocs = activeDocs
+
+    const activeDocId = ctx.params.id[1]
+
+    // Route is /app/:id/:docId
+    if (activeDocId) {
+      props.activeDoc = await doc.getOneDoc(db, activeDocId)
+    }
+  }
+
+  return { props: { ...props } }
 }
 
+/**
+ * Catch all handler. Must handle all different page
+ * states.
+ *
+ * 1. Folders - none selected = /app
+ * 2. Folders => Folder selected = app/1
+ * 3. Folders => Folder selected => Document selected = app/1/2
+ *
+ * An unauth user should not be able to access this page.
+ *
+ */
 export default App
